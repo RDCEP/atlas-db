@@ -12,8 +12,6 @@ cf.read(os.path.join(
     BASE_DIR, 'static', 'config.ini'
 ))
 
-NC_FILE = os.path.join(BASE_DIR, 'data', 'netcdf', _filename)
-
 MONGO = dict(
     local=True,
     user=cf.get('user', 'username'),
