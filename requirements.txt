@@ -1,0 +1,7 @@
+configparser
+elasticsearch
+netCDF4
+numpy
+pymongo
+requests
+lxml
