@@ -25,3 +25,7 @@ ELASTICSEARCH = dict(
     meta_index=cf.get('elasticsearch', 'meta_index'),
     meta_type=cf.get('elasticsearch', 'meta_type'),
 )
+
+URI = "mongodb://{}:{}@{}/{}?authMechanism=SCRAM-SHA-1".format(
+    MONGO['user'], MONGO['password'], MONGO['domain'],
+    MONGO['database'])

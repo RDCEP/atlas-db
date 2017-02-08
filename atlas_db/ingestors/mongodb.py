@@ -4,7 +4,7 @@ import sys
 import multiprocessing as mp
 import numpy as np
 from pymongo import MongoClient, GEOSPHERE
-from atlas_db.constants import MONGO
+from atlas_db.constants import MONGO, URI
 from atlas_db.ingestors import AtlasIngestor, AtlasSchema
 from atlas_db.ingestors.decorators import mongo_ingestion
 
@@ -12,11 +12,7 @@ from atlas_db.ingestors.decorators import mongo_ingestion
 class AtlasMongoIngestor(AtlasIngestor):
     def __init__(self, *args, **kwargs):
         super(AtlasMongoIngestor, self).__init__(*args, **kwargs)
-        self.uri = "mongodb://{}:{}@{}/{}?authMechanism=SCRAM-SHA-1".format(
-            MONGO['user'], MONGO['password'], MONGO['domain'],
-            MONGO['database']
-        )
-        client = MongoClient(self.uri) if not MONGO['local'] \
+        client = MongoClient(URI) if not MONGO['local'] \
             else MongoClient('localhost', MONGO['port'])
         db = client[MONGO['database']]
         self.meta_db = db['grid_meta']
@@ -98,7 +94,7 @@ class AtlasMongoIngestor(AtlasIngestor):
                 raise
 
     def get_grid_db(self, metadata, variable):
-        client = MongoClient(self.uri) if not MONGO['local'] \
+        client = MongoClient(URI) if not MONGO['local'] \
             else MongoClient('localhost', MONGO['port'])
         db = client[MONGO['database']]
         return db['{}_{}'.format(metadata, variable)]
