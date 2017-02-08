@@ -87,11 +87,11 @@ class AtlasMongoIngestor(AtlasIngestor):
                 ).as_dict
                 result = grid_db.insert_one(tile)
 
-                return True
-
             except:
                 print('Unexpected error:', sys.exc_info()[0])
                 raise
+
+        return True
 
     def get_grid_db(self, metadata, variable):
         client = MongoClient(URI) if not MONGO['local'] \
