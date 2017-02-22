@@ -23,6 +23,7 @@ class AtlasNc4Input(AtlasInput):
         self._variables = None
         self._dimensions = None
         self._parameters = dict()
+        self.excluded_vars = []
 
         try:
             self._lats = self.nc_dataset.variables[self.lat_var][:]
@@ -54,7 +55,8 @@ class AtlasNc4Input(AtlasInput):
         """
         if self._variables is None:
             self._variables = [v for v in self.nc_dataset.variables.keys()
-                               if v not in self.nc_dataset.dimensions.keys()]
+                               if v not in self.nc_dataset.dimensions.keys()
+                               and v not in self.excluded_vars]
         return self._variables
 
     @property

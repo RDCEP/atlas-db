@@ -3,6 +3,7 @@
 import sys
 from datetime import datetime
 from pymongo.errors import PyMongoError
+from config import DEBUG
 
 
 def mongo_ingestion(name):
@@ -12,7 +13,9 @@ def mongo_ingestion(name):
         def wrapper(*args, **kwargs):
 
             start_time = datetime.now()
-            print('*** Start {} ***\n{}\n\n'.format(name, start_time))
+
+            if DEBUG:
+                print('*** Start {} ***\n{}\n\n'.format(name, start_time))
 
             try:
                 f(*args, **kwargs)
@@ -24,10 +27,11 @@ def mongo_ingestion(name):
                 print('Unexpected error:', sys.exc_info()[0])
                 raise
 
-            end_time = datetime.now()
-            print('\n*** End {} ***\n{}\n'.format(name, end_time))
-            elapsed_time = end_time - start_time
-            print('\n*** Elapsed ***\n{}\n'.format(elapsed_time))
+            if DEBUG:
+                end_time = datetime.now()
+                print('\n*** End {} ***\n{}\n'.format(name, end_time))
+                elapsed_time = end_time - start_time
+                print('\n*** Elapsed ***\n{}\n'.format(elapsed_time))
 
         return wrapper
 
