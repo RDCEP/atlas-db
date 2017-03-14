@@ -5,7 +5,7 @@ from atlas_db.inputs import AtlasInput
 
 
 class AtlasNc4Input(AtlasInput):
-    def __init__(self, nc_file, *args, **kwargs):
+    def __init__(self, nc_file, scaling, *args, **kwargs):
         """Object for parsing netCDF files as data inputs to the ATLAS.
 
         :param nc_file: Path to netCDF input file
@@ -24,6 +24,10 @@ class AtlasNc4Input(AtlasInput):
         self._dimensions = None
         self._parameters = dict()
         self.excluded_vars = []
+        if scaling is False or scaling is None or scaling is True:
+            self.scaling = 3
+        elif type(scaling) in [float, int]:
+            self.scaling = scaling
 
         try:
             self._lats = self.nc_dataset.variables[self.lat_var][:]

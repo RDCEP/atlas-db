@@ -18,7 +18,8 @@ class AtlasMongoIngestor(AtlasIngestor):
         self.meta_db = db['grid_meta']
         self.schema = AtlasMongoDocument
 
-    def ingest(self, values, all_lons_lats, metadata, variable):
+    def parallel_ingest(self, values, all_lons_lats, metadata, variable,
+                        no_index=False):
         """Crudely parallelized ingestion for Mongo. `values` should be
         at least 2 dimensions, with the first dimension corresponding to
         latitude and the second to longitude.
@@ -31,6 +32,8 @@ class AtlasMongoIngestor(AtlasIngestor):
         :type metadata: str
         :param variable: Variable name
         :type variable: str
+        :param no_index: Quash indexing for tiled datasets
+        :type no_index: bool
         :return: Ingestion success
         :rtype: bool
         """
@@ -49,7 +52,42 @@ class AtlasMongoIngestor(AtlasIngestor):
             for j in jobs:
                 j.join()
 
-            self.index_grid(metadata, variable)
+            if not no_index:
+                self.index_grid(metadata, variable)
+            return True
+
+        except:
+
+            return False
+
+    def ingest(self, values, all_lons_lats, metadata, variable,
+               no_index=False):
+        """Crudely parallelized ingestion for Mongo. `values` should be
+        at least 2 dimensions, with the first dimension corresponding to
+        latitude and the second to longitude.
+
+        :param values: n-d array of values.
+        :type values: np.array
+        :param all_lons_lats: iterator over enumerated latitude and longitude
+        :type all_lons_lats: iter
+        :param metadata: `name` attribute from metadata
+        :type metadata: str
+        :param variable: Variable name
+        :type variable: str
+        :param no_index: Quash indexing for tiled datasets
+        :type no_index: bool
+        :return: Ingestion success
+        :rtype: bool
+        """
+        try:
+
+            all_lons_lats = np.array([x for x in all_lons_lats])
+
+            self.ingest_variable(values, all_lons_lats, metadata, variable)
+
+            if not no_index:
+                self.index_grid(metadata, variable)
+
             return True
 
         except:
@@ -73,6 +111,8 @@ class AtlasMongoIngestor(AtlasIngestor):
         """
 
         grid_db = self.get_grid_db(metadata, variable)
+        docs = list()
+        n = 0
 
         for (lat_idx, lat), (lon_idx, lon) in lons_lats:
 
@@ -82,10 +122,14 @@ class AtlasMongoIngestor(AtlasIngestor):
                 if pixel_values is None:
                     continue
 
-                tile = AtlasMongoDocument(
-                    lon, lat, pixel_values,
-                ).as_dict
-                result = grid_db.insert_one(tile)
+                docs.append(AtlasMongoDocument(
+                    lon, lat, pixel_values, self.scaling
+                ).as_dict)
+                n += 1
+
+                if n % 800 == 0 or n == len(lons_lats):
+                    result = grid_db.insert_many(docs)
+                    docs = list()
 
             except:
                 print('Unexpected error:', sys.exc_info()[0])
@@ -129,7 +173,7 @@ class AtlasMongoDocument(AtlasSchema):
         """
 
         document = {
-            'type': 'Feature',
+            # 'type': 'Feature',
             'geometry': {'type': 'Point',
                          'coordinates': [self.x, self.y]},
             'properties': {

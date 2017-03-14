@@ -4,8 +4,8 @@ import numpy as np
 
 
 class AtlasIngestor(object):
-    def __init__(self, *args, **kwargs):
-        pass
+    def __init__(self, scaling, *args, **kwargs):
+        self.scaling = scaling
 
     @staticmethod
     def num_or_null(arr):
@@ -31,10 +31,11 @@ class AtlasIngestor(object):
 
 
 class AtlasSchema(object):
-    def __init__(self, x, y, value):
+    def __init__(self, x, y, value, scaling):
         self.x = x
         self.y = y
-        self.value = [None if np.isnan(x) else float(x) for x in value]
+        self.value = [None if np.isnan(x) else int(x * 10**scaling)
+                      for x in value]
 
     @property
     def __geo_interface__(self):

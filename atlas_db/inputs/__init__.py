@@ -17,6 +17,7 @@ class AtlasInput(object):
         self._variables = None
         self._dimensions = None
         self._parameters = None
+        self.scaling = 3
 
     @property
     def lats(self):
@@ -79,6 +80,7 @@ class AtlasInput(object):
             'human_name': self.human_name,
             'date_created': datetime.now(),
             'date_inserted': datetime.now(),
+            'scaling': self.scaling,
             'dimensions': [
                 {'name': self.nc_dataset.variables[d].name,
                  'human_name': self.nc_dataset.variables[d].long_name,

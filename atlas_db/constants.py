@@ -5,6 +5,8 @@ except ImportError:
     import ConfigParser as configparser
 
 
+SCALE = 3
+
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
 cf = configparser.ConfigParser()

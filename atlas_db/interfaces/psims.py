@@ -4,6 +4,7 @@ import itertools
 import numpy as np
 from atlas_db.inputs.nc4 import AtlasNc4Input
 from atlas_db.ingestors.mongodb import AtlasMongoIngestor
+from atlas_db.constants import SCALE
 
 
 class AtlasPsims(AtlasNc4Input):
@@ -57,5 +58,5 @@ if __name__ == '__main__':
         'papsim', 'wfdei.cru', 'hist', 'default', 'firr', 'whe',
         'annual', 1979, 2012)
     NC_FILE = os.path.join(BASE_DIR, 'data', 'netcdf', 'psims', _filename)
-    p = AtlasPsims(AtlasMongoIngestor(), NC_FILE)
+    p = AtlasPsims(AtlasMongoIngestor(SCALE), NC_FILE, SCALE)
     p.ingest()

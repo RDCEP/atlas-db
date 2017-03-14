@@ -27,11 +27,13 @@ def mongo_ingestion(name):
                 print('Unexpected error:', sys.exc_info()[0])
                 raise
 
+            end_time = datetime.now()
+
             if DEBUG:
-                end_time = datetime.now()
                 print('\n*** End {} ***\n{}\n'.format(name, end_time))
-                elapsed_time = end_time - start_time
-                print('\n*** Elapsed ***\n{}\n'.format(elapsed_time))
+
+            elapsed_time = end_time - start_time
+            print('\n*** Elapsed ***\n{}\n'.format(elapsed_time))
 
         return wrapper
 
