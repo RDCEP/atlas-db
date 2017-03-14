@@ -7,7 +7,7 @@ import requests
 from lxml import html
 from atlas_db.inputs.nc4 import AtlasNc4Input
 from atlas_db.ingestors.mongodb import AtlasMongoIngestor
-from atlas_db.constants import BASE_DIR
+from atlas_db.constants import BASE_DIR, SCALE
 
 
 class AtlasGsdeTile(AtlasNc4Input):
@@ -18,9 +18,11 @@ class AtlasGsdeTile(AtlasNc4Input):
         self.backend = backend
         self.excluded_vars = ['cropland', 'fieldsize', 'elev', 'sldr', 'salb',
                               'slu1', 'slro']
+        self.no_index = True
 
     def ingest(self):
-        self.backend.ingest_metadata(self.metadata)
+        if self.no_index:
+            self.backend.ingest_metadata(self.metadata)
         for variable in self.variables:
             self.ingest_variable(variable)
 
@@ -39,7 +41,8 @@ class AtlasGsdeTile(AtlasNc4Input):
             values, self.nc_dataset.variables[variable].dimensions.index(
                 self.lon_var), 1)
 
-        self.backend.ingest(values, lons_lats, self.metadata['name'], variable)
+        self.backend.ingest(values, lons_lats, self.metadata['name'], variable,
+                            no_index=self.no_index)
 
 
 class AtlasGsde(object):
@@ -48,39 +51,36 @@ class AtlasGsde(object):
     """
     def __init__(self, *args, **kwargs):
         self.name = 'gsde'
+        self.human_name = 'Global Soil Dataset for Earth System Modeling'
+        self.input = None
         self.url = 'http://users.rcc.uchicago.edu' \
                    '/~davidkelly999/gsde.2deg.tile/'
         self.bounds = dict(lonmin=0, lonmax=180, latmin=0, latmax=90)
 
     def get_all_tile_dirs(self):
-
         response = requests.get(self.url)
         parsed = html.fromstring(response.text)
         links = parsed.xpath('//tr//td//a/@href')
-        for link in links:
-            if link[0] == '/':
-                continue
-            if float(link[:4]) < self.bounds['latmin']:
-                continue
-            if float(link[:4]) > self.bounds['latmax']:
-                continue
-            print(link)
-            self.get_nc4s_from_tile(self.url+link)
-
-    def get_nc4s_from_tile(self, url):
-        response = requests.get(url)
-        parsed = html.fromstring(response.text)
-        links = parsed.xpath('//tr//td//a/@href')
-        for link in links:
-            if link[0] == '/':
-                continue
-            if float(link.split('.')[0].split('_')[-1]) < self.bounds['lonmin']:
-                continue
-            if float(link.split('.')[0].split('_')[-1]) > self.bounds['lonmax']:
-                continue
-            print(link)
-            nc_file = self.download_nc4(url+link)
-            tile = AtlasGsdeTile(AtlasMongoIngestor(), nc_file)
+        lat_links = [
+            link for link in links if link[0] != '/'
+            and self.bounds['latmax'] <= float(link[:4]) <= self.bounds['latmin']
+        ]
+        lon_lat_links = list()
+        for i, lat_link in enumerate(lat_links):
+            response = requests.get(self.url+lat_link)
+            parsed = html.fromstring(response.text)
+            links = parsed.xpath('//tr//td//a/@href')
+            lon_links = [
+                link for link in links if link[0] != '/'
+                and self.bounds['lonmax'] >= float(
+                    link.split('.')[0].split('_')[-1]) >= self.bounds['lonmin']
+            ]
+            lon_lat_links += [self.url+lat_link+lon_link
+                              for lon_link in lon_links]
+        for i, link in enumerate(lon_lat_links):
+            nc_file = self.download_nc4(link)
+            tile = AtlasGsdeTile(AtlasMongoIngestor(SCALE), nc_file, SCALE)
+            tile.no_index = i+1 < len(lon_lat_links)
             tile.ingest()
             os.remove(nc_file)
 
@@ -99,7 +99,7 @@ class AtlasGsde(object):
 if __name__ == '__main__':
 
     def lat2g(v):
-        return (((v - -90) * (90 - 0)) / (90 - -90)) + 0
+        return (((v - -90) * (0 - 90)) / (90 - -90)) + 90
 
     def lon2g(v):
         return (((v - -180) * (180 - 0)) / (180 - -180)) + 0
@@ -110,8 +110,3 @@ if __name__ == '__main__':
                     latmin=lat2g(6), latmax=lat2g(36))
     p.get_all_tile_dirs()
 
-    # United States
-    p = AtlasGsde()
-    p.bounds = dict(lonmin=lon2g(-124), lonmax=lon2g(-67),
-                    latmin=lat2g(24), latmax=lat2g(50))
-    p.get_all_tile_dirs()
