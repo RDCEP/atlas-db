@@ -21,7 +21,7 @@ class AtlasGsdeTile(AtlasNc4Input):
         self.no_index = True
 
     def ingest(self):
-        if self.no_index:
+        if not self.no_index:
             self.backend.ingest_metadata(self.metadata)
         for variable in self.variables:
             self.ingest_variable(variable)
@@ -55,6 +55,8 @@ class AtlasGsde(object):
         self.input = None
         self.url = 'http://users.rcc.uchicago.edu' \
                    '/~davidkelly999/gsde.2deg.tile/'
+        self.lons = set()
+        self.lats = set()
         self.bounds = dict(lonmin=0, lonmax=180, latmin=0, latmax=90)
 
     def get_all_tile_dirs(self):
@@ -80,7 +82,12 @@ class AtlasGsde(object):
         for i, link in enumerate(lon_lat_links):
             nc_file = self.download_nc4(link)
             tile = AtlasGsdeTile(AtlasMongoIngestor(SCALE), nc_file, SCALE)
+            self.lons = self.lons.union({x for x in tile.lons})
+            self.lats = self.lats.union({x for x in tile.lats})
             tile.no_index = i+1 < len(lon_lat_links)
+            if not tile.no_index:
+                tile.metadata['lons'] = self.lons
+                tile.metadata['lats'] = self.lats
             tile.ingest()
             os.remove(nc_file)
 
