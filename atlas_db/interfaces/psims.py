@@ -28,27 +28,34 @@ class AtlasPsims(AtlasNc4Input):
 
     def ingest(self):
         self.backend.ingest_metadata(self.metadata)
-        for variable in self.variables:
-            self.ingest_variable(variable)
+        self.ingest_variable(None)
 
     def ingest_variable(self, variable):
-
-        print(variable)
-
-        values = self.nc_dataset[variable][:]
 
         lons_lats = itertools.product(
             enumerate(self.lats), enumerate(self.lons))
 
-        values = np.swapaxes(
-            values, self.nc_dataset.variables[variable].dimensions.index(
-                self.lat_var), 0)
+        variables = dict()
 
-        values = np.swapaxes(
-            values, self.nc_dataset.variables[variable].dimensions.index(
-                self.lon_var), 1)
+        for v in self.variables:
+            values = self.nc_dataset[v][:]
 
-        self.backend.ingest(values, lons_lats, self.metadata['name'], variable)
+            values = np.swapaxes(
+                values, self.nc_dataset.variables[v].dimensions.index(
+                    self.lat_var), 0)
+
+            values = np.swapaxes(
+                values, self.nc_dataset.variables[v].dimensions.index(
+                    self.lon_var), 1)
+
+            variables[v] = values
+
+        # TODO: Add lons and lats to meta.
+        # db.grid_meta.update( { "name" : "papsim_wfdeicru_hist_default_firr_whe_annual_1979_2012" }, { $set: { "lons" : db.papsim_wfdeicru_hist_default_firr_whe_annual_1979_2012.distinct( "loc.0" ) } } )
+        # db.grid_meta.update( { "name" : "papsim_wfdeicru_hist_default_firr_whe_annual_1979_2012" }, { $set: { "lats" : db.papsim_wfdeicru_hist_default_firr_whe_annual_1979_2012.distinct( "loc.1" ) } } )
+
+        self.backend.ingest(variables, lons_lats, self.metadata['name'],
+                            variable)
 
 
 if __name__ == '__main__':

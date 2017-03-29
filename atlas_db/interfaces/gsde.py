@@ -23,26 +23,31 @@ class AtlasGsdeTile(AtlasNc4Input):
     def ingest(self):
         if not self.no_index:
             self.backend.ingest_metadata(self.metadata)
-        for variable in self.variables:
-            self.ingest_variable(variable)
+        # for variable in self.variables:
+        self.ingest_variable(None)
 
     def ingest_variable(self, variable):
-
-        values = self.nc_dataset[variable][:]
 
         lons_lats = itertools.product(
             enumerate(self.lats), enumerate(self.lons))
 
-        values = np.swapaxes(
-            values, self.nc_dataset.variables[variable].dimensions.index(
-                self.lat_var), 0)
+        variables = dict()
 
-        values = np.swapaxes(
-            values, self.nc_dataset.variables[variable].dimensions.index(
-                self.lon_var), 1)
+        for v in self.variables:
+            values = self.nc_dataset[v][:]
 
-        self.backend.ingest(values, lons_lats, self.metadata['name'], variable,
-                            no_index=self.no_index)
+            values = np.swapaxes(
+                values, self.nc_dataset.variables[v].dimensions.index(
+                    self.lat_var), 0)
+
+            values = np.swapaxes(
+                values, self.nc_dataset.variables[v].dimensions.index(
+                    self.lon_var), 1)
+
+            variables[v] = values
+
+        self.backend.ingest(variables, lons_lats, self.metadata['name'],
+                            variable, no_index=self.no_index)
 
 
 class AtlasGsde(object):
@@ -82,13 +87,13 @@ class AtlasGsde(object):
         for i, link in enumerate(lon_lat_links):
             nc_file = self.download_nc4(link)
             tile = AtlasGsdeTile(AtlasMongoIngestor(SCALE), nc_file, SCALE)
-            self.lons = self.lons.union({x for x in tile.lons})
-            self.lats = self.lats.union({x for x in tile.lats})
+            self.lons = self.lons.union(set([x for x in tile.lons]))
+            self.lats = self.lats.union(set([x for x in tile.lats]))
             tile.no_index = i+1 < len(lon_lat_links)
             if not tile.no_index:
-                tile.metadata['lons'] = self.lons
-                tile.metadata['lats'] = self.lats
-            tile.ingest()
+                tile.metadata['lons'] = [float(x) for x in self.lons]
+                tile.metadata['lats'] = [float(x) for x in self.lats]
+                tile.ingest()
             os.remove(nc_file)
 
     @staticmethod

@@ -46,7 +46,8 @@ class AtlasMongoIngestor(AtlasIngestor):
             for i in range(n):
                 lons_lats = np.array_split(all_lons_lats, n)[i]
                 p = mp.Process(target=self.ingest_variable,
-                               args=(values, lons_lats, metadata, variable))
+                               args=(values, lons_lats, metadata, variable,
+                                     no_index))
                 jobs.append(p)
                 p.start()
             for j in jobs:
@@ -54,6 +55,7 @@ class AtlasMongoIngestor(AtlasIngestor):
 
             if not no_index:
                 self.index_grid(metadata, variable)
+
             return True
 
         except:
@@ -116,20 +118,22 @@ class AtlasMongoIngestor(AtlasIngestor):
 
         for (lat_idx, lat), (lon_idx, lon) in lons_lats:
 
-            try:
+            # try:
+            vals = dict()
+            for k, v in values.iteritems():
                 pixel_values = self.num_or_null(
-                    values[int(lat_idx), int(lon_idx)])
-                if pixel_values is None:
-                    continue
+                    v[int(lat_idx), int(lon_idx)])
+                if pixel_values is not None:
+                    vals[k] = pixel_values
 
-                docs.append(AtlasMongoDocument(
-                    lon, lat, pixel_values, self.scaling
-                ).as_dict)
-                n += 1
+            docs.append(AtlasMongoDocument(
+                lon, lat, vals, self.scaling
+            ).as_dict)
+            n += 1
 
-                if n % 800 == 0 or n == len(lons_lats):
-                    result = grid_db.insert_many(docs)
-                    docs = list()
+            if n % 800 == 0 or n == len(lons_lats):
+                result = grid_db.insert_many(docs)
+                docs = list()
 
             except:
                 print('Unexpected error:', sys.exc_info()[0])
@@ -141,7 +145,8 @@ class AtlasMongoIngestor(AtlasIngestor):
         client = MongoClient(URI) if not MONGO['local'] \
             else MongoClient('localhost', MONGO['port'])
         db = client[MONGO['database']]
-        return db['{}_{}'.format(metadata, variable)]
+        # return db['{}_{}'.format(metadata, variable)]
+        return db['{}'.format(metadata)]
 
     def drop_metadata(self, metadata):
         self.meta_db.delete_one({'name': metadata['name']})
@@ -154,7 +159,7 @@ class AtlasMongoIngestor(AtlasIngestor):
     @mongo_ingestion('Index')
     def index_grid(self, metadata, variable):
         self.get_grid_db(metadata, variable)\
-            .create_index([('geometry', GEOSPHERE)])
+            .create_index([('loc', GEOSPHERE)])
 
 
 class AtlasMongoDocument(AtlasSchema):
@@ -162,6 +167,8 @@ class AtlasMongoDocument(AtlasSchema):
         """Schema for storing ATLAS data in Mongo.
         """
         super(AtlasMongoDocument, self).__init__(*args, **kwargs)
+        # self.value = [None if np.isnan(x) else int(x * 10 ** scaling)
+        #               for x in value]
 
     @property
     def __geo_interface__(self):
@@ -174,10 +181,9 @@ class AtlasMongoDocument(AtlasSchema):
 
         document = {
             # 'type': 'Feature',
-            'geometry': {'type': 'Point',
-                         'coordinates': [self.x, self.y]},
-            'properties': {
-                'values': self.value,
-            }}
+            'loc': [self.x, self.y],
+            'val': {str(k): [None if np.isnan(x) else int(x * 10**self.scaling)
+                    for x in v] for k, v in self.value.iteritems()}
+            }
 
         return document

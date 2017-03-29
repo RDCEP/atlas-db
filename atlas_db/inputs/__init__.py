@@ -81,8 +81,8 @@ class AtlasInput(object):
             'date_created': datetime.now(),
             'date_inserted': datetime.now(),
             'scaling': self.scaling,
-            'lons': self.lons,
-            'lats': self.lats,
+            'lons': [],
+            'lats': [],
             'dimensions': [
                 {'name': self.nc_dataset.variables[d].name,
                  'human_name': self.nc_dataset.variables[d].long_name,

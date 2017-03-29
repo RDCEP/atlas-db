@@ -20,6 +20,7 @@ class AtlasIngestor(object):
             try:
                 return arr.tolist()
             except SyntaxError:
+                # pass
                 print(arr)
 
         except ValueError:
@@ -34,8 +35,8 @@ class AtlasSchema(object):
     def __init__(self, x, y, value, scaling):
         self.x = x
         self.y = y
-        self.value = [None if np.isnan(x) else int(x * 10**scaling)
-                      for x in value]
+        self.scaling = scaling
+        self.value = value
 
     @property
     def __geo_interface__(self):
