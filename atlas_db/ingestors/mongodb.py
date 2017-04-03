@@ -64,7 +64,7 @@ class AtlasMongoIngestor(AtlasIngestor):
 
     def ingest(self, values, all_lons_lats, metadata, variable,
                no_index=False):
-        """Crudely parallelized ingestion for Mongo. `values` should be
+        """Non-parallelized ingestion for Mongo. `values` should be
         at least 2 dimensions, with the first dimension corresponding to
         latitude and the second to longitude.
 
@@ -85,7 +85,8 @@ class AtlasMongoIngestor(AtlasIngestor):
 
             all_lons_lats = np.array([x for x in all_lons_lats])
 
-            self.ingest_variable(values, all_lons_lats, metadata, variable)
+            self.ingest_variable(values, all_lons_lats, metadata, variable,
+                                 no_index)
 
             if not no_index:
                 self.index_grid(metadata, variable)
@@ -118,22 +119,22 @@ class AtlasMongoIngestor(AtlasIngestor):
 
         for (lat_idx, lat), (lon_idx, lon) in lons_lats:
 
-            # try:
-            vals = dict()
-            for k, v in values.iteritems():
-                pixel_values = self.num_or_null(
-                    v[int(lat_idx), int(lon_idx)])
-                if pixel_values is not None:
-                    vals[k] = pixel_values
+            try:
+                vals = dict()
+                for k, v in values.iteritems():
+                    pixel_values = self.num_or_null(
+                        v[int(lat_idx), int(lon_idx)])
+                    if pixel_values is not None:
+                        vals[k] = pixel_values
 
-            docs.append(AtlasMongoDocument(
-                lon, lat, vals, self.scaling
-            ).as_dict)
-            n += 1
+                docs.append(AtlasMongoDocument(
+                    lon, lat, vals, self.scaling
+                ).as_dict)
+                n += 1
 
-            if n % 800 == 0 or n == len(lons_lats):
-                result = grid_db.insert_many(docs)
-                docs = list()
+                if n % 800 == 0 or n == len(lons_lats):
+                    result = grid_db.insert_many(docs)
+                    docs = list()
 
             except:
                 print('Unexpected error:', sys.exc_info()[0])

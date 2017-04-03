@@ -23,7 +23,6 @@ class AtlasGsdeTile(AtlasNc4Input):
     def ingest(self):
         if not self.no_index:
             self.backend.ingest_metadata(self.metadata)
-        # for variable in self.variables:
         self.ingest_variable(None)
 
     def ingest_variable(self, variable):
@@ -45,6 +44,10 @@ class AtlasGsdeTile(AtlasNc4Input):
                     self.lon_var), 1)
 
             variables[v] = values
+
+        # TODO: Add lons and lats to meta.
+        # db.grid_meta.update( { "name" : "gsde" }, { $set: { "lats" : db.gsde.distinct( "loc.1" ) } } )
+        # db.grid_meta.update( { "name" : "gsde" }, { $set: { "lons" : db.gsde.distinct( "loc.0" ) } } )
 
         self.backend.ingest(variables, lons_lats, self.metadata['name'],
                             variable, no_index=self.no_index)
