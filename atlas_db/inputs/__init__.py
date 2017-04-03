@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime
 import numpy as np
+from six import iteritems
 
 
 class AtlasInput(object):
@@ -107,5 +108,5 @@ class AtlasInput(object):
             'parameters': [
                 {'name': k,
                  'value': v,
-                 } for k, v in self.parameters.iteritems()]
+                 } for k, v in iteritems(self.parameters)]
         }

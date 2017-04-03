@@ -3,6 +3,7 @@
 import sys
 import multiprocessing as mp
 import numpy as np
+from six import iteritems
 from pymongo import MongoClient, GEOSPHERE
 from atlas_db.constants import MONGO, URI
 from atlas_db.ingestors import AtlasIngestor, AtlasSchema
@@ -121,7 +122,7 @@ class AtlasMongoIngestor(AtlasIngestor):
 
             try:
                 vals = dict()
-                for k, v in values.iteritems():
+                for k, v in iteritems(values):
                     pixel_values = self.num_or_null(
                         v[int(lat_idx), int(lon_idx)])
                     if pixel_values is not None:
@@ -184,7 +185,7 @@ class AtlasMongoDocument(AtlasSchema):
             # 'type': 'Feature',
             'loc': [self.x, self.y],
             'val': {str(k): [None if np.isnan(x) else int(x * 10**self.scaling)
-                    for x in v] for k, v in self.value.iteritems()}
+                    for x in v] for k, v in iteritems(self.value)}
             }
 
         return document

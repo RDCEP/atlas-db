@@ -5,3 +5,4 @@ numpy
 pymongo
 requests
 lxml
+six
