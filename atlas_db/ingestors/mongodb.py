@@ -18,21 +18,34 @@ class AtlasMongoIngestor(AtlasIngestor):
         db = client[MONGO['database']]
         self.meta_db = db['grid_meta']
         self.schema = AtlasMongoDocument
+        self.values = None
+        self.lons_lats = None
+        self.meta_name = None
 
-    def parallel_ingest(self, values, all_lons_lats, metadata, variable,
-                        no_index=False):
+    def ingest(self, values, lons_lats, metadata, no_index=False):
+        """Callable ingestion method.
+
+        :param values: n-d array of values.
+        :type values: np.array
+        :param lons_lats: iterator over enumerated latitude and longitude
+        :type lons_lats: iter
+        :param metadata: `name` attribute from metadata
+        :type metadata: str
+        :param no_index: Quash indexing for tiled datasets
+        :type no_index: bool
+        :return:
+        :rtype:
+        """
+        self.values = values
+        self.lons_lats = lons_lats
+        self.meta_name = metadata
+        self._parallel_ingest(no_index)
+
+    def _parallel_ingest(self, no_index=False):
         """Crudely parallelized ingestion for Mongo. `values` should be
         at least 2 dimensions, with the first dimension corresponding to
         latitude and the second to longitude.
 
-        :param values: n-d array of values.
-        :type values: np.array
-        :param all_lons_lats: iterator over enumerated latitude and longitude
-        :type all_lons_lats: iter
-        :param metadata: `name` attribute from metadata
-        :type metadata: str
-        :param variable: Variable name
-        :type variable: str
         :param no_index: Quash indexing for tiled datasets
         :type no_index: bool
         :return: Ingestion success
@@ -42,20 +55,19 @@ class AtlasMongoIngestor(AtlasIngestor):
             jobs = []
             n = mp.cpu_count()
 
-            all_lons_lats = np.array([x for x in all_lons_lats])
+            all_lons_lats = np.array([x for x in self.lons_lats])
 
             for i in range(n):
                 lons_lats = np.array_split(all_lons_lats, n)[i]
-                p = mp.Process(target=self.ingest_variable,
-                               args=(values, lons_lats, metadata, variable,
-                                     no_index))
+                p = mp.Process(target=self._ingest_data,
+                               args=(lons_lats, ))
                 jobs.append(p)
                 p.start()
             for j in jobs:
                 j.join()
 
             if not no_index:
-                self.index_grid(metadata, variable)
+                self.index_grid(self.meta_name)
 
             return True
 
@@ -63,20 +75,11 @@ class AtlasMongoIngestor(AtlasIngestor):
 
             return False
 
-    def ingest(self, values, all_lons_lats, metadata, variable,
-               no_index=False):
+    def _serial_ingest(self, no_index=False):
         """Non-parallelized ingestion for Mongo. `values` should be
         at least 2 dimensions, with the first dimension corresponding to
         latitude and the second to longitude.
 
-        :param values: n-d array of values.
-        :type values: np.array
-        :param all_lons_lats: iterator over enumerated latitude and longitude
-        :type all_lons_lats: iter
-        :param metadata: `name` attribute from metadata
-        :type metadata: str
-        :param variable: Variable name
-        :type variable: str
         :param no_index: Quash indexing for tiled datasets
         :type no_index: bool
         :return: Ingestion success
@@ -84,13 +87,12 @@ class AtlasMongoIngestor(AtlasIngestor):
         """
         try:
 
-            all_lons_lats = np.array([x for x in all_lons_lats])
+            all_lons_lats = np.array([x for x in self.lons_lats])
 
-            self.ingest_variable(values, all_lons_lats, metadata, variable,
-                                 no_index)
+            self._ingest_data(all_lons_lats, no_index)
 
             if not no_index:
-                self.index_grid(metadata, variable)
+                self.index_grid(self.meta_name)
 
             return True
 
@@ -99,22 +101,16 @@ class AtlasMongoIngestor(AtlasIngestor):
             return False
 
     @mongo_ingestion('Raster')
-    def ingest_variable(self, values, lons_lats, metadata, variable):
+    def _ingest_data(self, lons_lats):
         """Ingest one 'slice' of data per CPU core.
 
-        :param values: n-d array of values
-        :type values: np.array
         :param lons_lats: array of enumerated latitudes and longitudes
         :type lons_lats: np.array
-        :param metadata: name of metadata
-        :type metadata: str
-        :param variable: name of variable
-        :type variable: str
         :return:
         :rtype:
         """
 
-        grid_db = self.get_grid_db(metadata, variable)
+        grid_db = self.get_grid_db(self.meta_name)
         docs = list()
         n = 0
 
@@ -122,7 +118,7 @@ class AtlasMongoIngestor(AtlasIngestor):
 
             try:
                 vals = dict()
-                for k, v in iteritems(values):
+                for k, v in iteritems(self.values):
                     pixel_values = self.num_or_null(
                         v[int(lat_idx), int(lon_idx)])
                     if pixel_values is not None:
@@ -143,24 +139,23 @@ class AtlasMongoIngestor(AtlasIngestor):
 
         return True
 
-    def get_grid_db(self, metadata, variable):
+    def get_grid_db(self, meta_name):
         client = MongoClient(URI) if not MONGO['local'] \
             else MongoClient('localhost', MONGO['port'])
         db = client[MONGO['database']]
-        # return db['{}_{}'.format(metadata, variable)]
-        return db['{}'.format(metadata)]
+        return db['{}'.format(meta_name)]
 
-    def drop_metadata(self, metadata):
-        self.meta_db.delete_one({'name': metadata['name']})
+    def drop_metadata(self, meta_name):
+        self.meta_db.delete_one({'name': meta_name['name']})
 
     @mongo_ingestion('Metadata')
-    def ingest_metadata(self, metadata):
-        self.drop_metadata(metadata)
-        self.meta_db.insert_one(metadata)
+    def ingest_metadata(self, meta_name):
+        self.drop_metadata(meta_name)
+        self.meta_db.insert_one(meta_name)
 
     @mongo_ingestion('Index')
-    def index_grid(self, metadata, variable):
-        self.get_grid_db(metadata, variable)\
+    def index_grid(self, meta_name):
+        self.get_grid_db(meta_name)\
             .create_index([('loc', GEOSPHERE)])
 
 

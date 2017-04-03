@@ -28,9 +28,9 @@ class AtlasPsims(AtlasNc4Input):
 
     def ingest(self):
         self.backend.ingest_metadata(self.metadata)
-        self.ingest_variable(None)
+        self.ingest_data()
 
-    def ingest_variable(self, variable):
+    def ingest_data(self):
 
         lons_lats = itertools.product(
             enumerate(self.lats), enumerate(self.lons))
@@ -54,8 +54,7 @@ class AtlasPsims(AtlasNc4Input):
         # db.grid_meta.update( { "name" : "papsim_wfdeicru_hist_default_firr_whe_annual_1979_2012" }, { $set: { "lons" : db.papsim_wfdeicru_hist_default_firr_whe_annual_1979_2012.distinct( "loc.0" ) } } )
         # db.grid_meta.update( { "name" : "papsim_wfdeicru_hist_default_firr_whe_annual_1979_2012" }, { $set: { "lats" : db.papsim_wfdeicru_hist_default_firr_whe_annual_1979_2012.distinct( "loc.1" ) } } )
 
-        self.backend.ingest(variables, lons_lats, self.metadata['name'],
-                            variable)
+        self.backend.ingest(variables, lons_lats, self.metadata['name'])
 
 
 if __name__ == '__main__':
