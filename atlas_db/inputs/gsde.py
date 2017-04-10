@@ -49,7 +49,7 @@ class AtlasGsdeTile(AtlasNc4Input):
         # db.grid_meta.update( { "name" : "gsde" }, { $set: { "lats" : db.gsde.distinct( "loc.1" ) } } )
         # db.grid_meta.update( { "name" : "gsde" }, { $set: { "lons" : db.gsde.distinct( "loc.0" ) } } )
 
-        self.backend.serial_ingest(variables, lons_lats, self.metadata['name'],
+        self.backend.ingest(variables, lons_lats, self.metadata['name'],
                                    no_index=self.no_index)
 
 
