@@ -5,7 +5,7 @@ import numpy as np
 from six import iteritems
 
 
-class AtlasInput(object):
+class AtlasInterface(object):
     def __init__(self, *args, **kwargs):
         self.nc_file = None
         self.nc_dataset = None

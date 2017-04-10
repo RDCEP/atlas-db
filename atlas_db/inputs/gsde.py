@@ -5,12 +5,12 @@ import itertools
 import numpy as np
 import requests
 from lxml import html
-from atlas_db.inputs.nc4 import AtlasNc4Input
+from atlas_db.interfaces.nc4 import AtlasNc4Interface
 from atlas_db.ingestors.mongodb import AtlasMongoIngestor
 from atlas_db.constants import BASE_DIR, SCALE
 
 
-class AtlasGsdeTile(AtlasNc4Input):
+class AtlasGsdeTile(AtlasNc4Interface):
     def __init__(self, backend, *args, **kwargs):
         super(AtlasGsdeTile, self).__init__(*args, **kwargs)
         self.name = 'gsde'

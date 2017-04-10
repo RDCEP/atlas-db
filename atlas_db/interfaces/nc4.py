@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 from netCDF4 import Dataset
-from atlas_db.inputs import AtlasInput
+from atlas_db.interfaces import AtlasInterface
 
 
-class AtlasNc4Input(AtlasInput):
+class AtlasNc4Interface(AtlasInterface):
     def __init__(self, nc_file, scaling, *args, **kwargs):
         """Object for parsing netCDF files as data inputs to the ATLAS.
 
@@ -13,7 +13,7 @@ class AtlasNc4Input(AtlasInput):
         :return: None
         :rtype: None
         """
-        super(AtlasNc4Input, self).__init__(*args, **kwargs)
+        super(AtlasNc4Interface, self).__init__(*args, **kwargs)
         self.nc_file = nc_file
         self.nc_dataset = Dataset(self.nc_file, 'r')
         self.name = None
