@@ -11,6 +11,7 @@ class AtlasInterface(object):
         self.nc_dataset = None
         self.name = None
         self.human_name = None
+        self.human_name_key = 'long_name'
         self._lon_var = None
         self._lat_var = None
         self._lats = None
@@ -86,7 +87,8 @@ class AtlasInterface(object):
             'lats': [],
             'dimensions': [
                 {'name': self.nc_dataset.variables[d].name,
-                 'human_name': self.nc_dataset.variables[d].long_name,
+                 'human_name': self.nc_dataset.variables[d].getncattr(
+                     self.human_name_key),
                  'min': float(np.min(self.nc_dataset.variables[d][:])),
                  'max': float(np.max(self.nc_dataset.variables[d][:])),
                  'size': int(self.nc_dataset.variables[d].size),
@@ -94,7 +96,8 @@ class AtlasInterface(object):
                  } for d in self.dimensions],
             'variables': [
                 {'name': self.nc_dataset.variables[v].name,
-                 'human_name': self.nc_dataset.variables[v].long_name,
+                 'human_name': self.nc_dataset.variables[v].getncattr(
+                     self.human_name_key),
                  'min': float(np.min(self.nc_dataset.variables[v][:])),
                  'max': float(np.max(self.nc_dataset.variables[v][:])),
                  'unit': self.nc_dataset.variables[v].units,
