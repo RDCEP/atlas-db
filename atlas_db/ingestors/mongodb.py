@@ -124,10 +124,11 @@ class AtlasMongoIngestor(AtlasIngestor):
                     if pixel_values is not None:
                         vals[k] = pixel_values
 
-                docs.append(AtlasMongoDocument(
-                    lon, lat, vals, self.scaling
-                ).as_dict)
-                n += 1
+                if len(vals.keys()) > 0:
+                    docs.append(AtlasMongoDocument(
+                        lon, lat, vals, self.scaling
+                    ).as_dict)
+                    n += 1
 
                 if n % 800 == 0 or n == len(lons_lats):
                     result = grid_db.insert_many(docs)
