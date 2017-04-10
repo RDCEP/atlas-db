@@ -1,112 +1,27 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-from datetime import datetime
-import numpy as np
-from six import iteritems
+from atlas_db.ingestors import AtlasIngestor
 
 
-class AtlasInput(object):
+class AtlasInterface(object):
     def __init__(self, *args, **kwargs):
-        self.nc_file = None
-        self.nc_dataset = None
-        self.name = None
-        self.human_name = None
-        self._lon_var = None
-        self._lat_var = None
-        self._lats = None
-        self._lons = None
-        self._variables = None
-        self._dimensions = None
-        self._parameters = None
-        self.scaling = 3
+        """Generic object describing a model interface to a backend.
+         Interface objects need to specify the following attributes:
 
-    @property
-    def lats(self):
-        """List of all latitude values in dataset.
+         * name (str): slugified, computer-readable name of dataset
+         * human_name (str): human-readable name of dataset
+         * parameters (dict): names and vales of dataset parameters
+         * backend (object): an instance of an object inheriting from
+           AtlasIngestor
 
-        :return: List of all latitude values in dataset.
-        :rtype: list
+         Interface objects need to declare the following methods:
+
+         * ingest()
         """
-        return self._lats
+        self.name = str()
+        self.human_name = str()
+        self.parameters = dict()
+        self.backend = AtlasIngestor()
 
-    @property
-    def lons(self):
-        """List of all longitude values in dataset.
-
-        :return: List of all longitude values in dataset.
-        :rtype: list
-        """
-        return self._lons
-
-    @property
-    def dimensions(self):
-        """List of dimensions other than longitude and latitude.
-
-        :return: List of dimensions in NetCDF file (excluding lonlat)
-        :rtype: list
-        """
-        return self._parameters
-
-    @property
-    def variables(self):
-        """List of variables in NetCDF, other than dimensions in NetCDF.
-
-        :return: List of variables in NetCDF file (excluding dimensions)
-        :rtype: list
-        """
-        return self._variables
-
-    @property
-    def parameters(self):
-        """Dictionary of parameter names and values for the dataset.
-
-        :return: Dataset parameters
-        :rtype: dict
-        """
-        return self._parameters
-
-    @parameters.setter
-    def parameters(self, value):
-        self._parameters = value
-
-    @property
-    def metadata(self):
-        """Dictionary of all metadata for the current dataset.
-
-        :return: Metadata for the current dataset.
-        :rtype: dict
-        """
-        return {
-            'name': self.name,
-            'human_name': self.human_name,
-            'date_created': datetime.now(),
-            'date_inserted': datetime.now(),
-            'scaling': self.scaling,
-            'lons': [],
-            'lats': [],
-            'dimensions': [
-                {'name': self.nc_dataset.variables[d].name,
-                 'human_name': self.nc_dataset.variables[d].long_name,
-                 'min': float(np.min(self.nc_dataset.variables[d][:])),
-                 'max': float(np.max(self.nc_dataset.variables[d][:])),
-                 'size': int(self.nc_dataset.variables[d].size),
-                 'unit': self.nc_dataset.variables[d].units,
-                 } for d in self.dimensions],
-            'variables': [
-                {'name': self.nc_dataset.variables[v].name,
-                 'human_name': self.nc_dataset.variables[v].long_name,
-                 'min': float(np.min(self.nc_dataset.variables[v][:])),
-                 'max': float(np.max(self.nc_dataset.variables[v][:])),
-                 'unit': self.nc_dataset.variables[v].units,
-                 'dimension_idxs': [i for i, d in enumerate(self.dimensions)
-                                    if d in self.nc_dataset.variables[
-                                        v].dimensions],
-                 'dimensions': [d for i, d in enumerate(self.dimensions)
-                                if
-                                d in self.nc_dataset.variables[v].dimensions],
-                 } for v in self.variables],
-            'parameters': [
-                {'name': k,
-                 'value': v,
-                 } for k, v in iteritems(self.parameters)]
-        }
+    def ingest(self):
+        pass
