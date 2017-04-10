@@ -108,7 +108,8 @@ class AtlasMongoExtractor(AtlasExtractor):
                 'loc': {'$near': {
                     '$geometry': {'type': 'Point', 'coordinates': lonlat},
                     'maxDistance': 1000,
-                }}
+                }},
+                'val.{}'.format(variable): {'$exists': True}
             }).limit(1))
         return points
 
