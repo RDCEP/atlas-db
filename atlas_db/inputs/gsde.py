@@ -44,4 +44,3 @@ if __name__ == '__main__':
     p.bounds = dict(lonmin=lon2g(60), lonmax=lon2g(98),
                     latmin=lat2g(6), latmax=lat2g(36))
     p.get_all_tile_dirs()
-
