@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 import os
-from glob import glob
+import glob
 import itertools
 import numpy as np
 import requests
